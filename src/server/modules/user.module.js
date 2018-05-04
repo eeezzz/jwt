@@ -1,6 +1,8 @@
 // User.module.js
 import mysql from "mysql"
 import config from "../../config/config"
+import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
 
 const connectionPool = mysql.createPool({
   connectionLimit: 10,
@@ -9,6 +11,54 @@ const connectionPool = mysql.createPool({
   password: config.mysqlPass,
   database: config.mysqlDatabase
 });
+
+// User POST (login)登入取得資訊
+const selectUserLogin = insertValues => {
+  console.log(insertValues)
+  return new Promise((resolve, reject) => {
+    connectionPool.getConnection((connectionError, connection) => {
+      if (connectionError) {
+        reject(connectionError);
+      } else {
+        connection.query(
+          "SELECT * FROM User WHERE user_mail = ?",
+          insertValues.user_mail,
+          (error, result) => {
+            if (error) {
+              console.error("SQL error: ", error);
+              reject(error); // 寫入資料庫有問題時回傳錯誤
+            } else if (Object.keys(result).length === 0) {
+              resolve("信箱尚未註冊！");
+            } else {
+              const dbHashPassword = result[0].user_password;
+              const userPassword = insertValues.user_password;
+              bcrypt
+                .compare(userPassword, dbHashPassword)
+                .then(res => {
+                  if (res) {
+                    // 產生JWT
+                    const playload = {
+                      user_id: result[0].user_id,
+                      user_name: result[0].user_name,
+                      user_mail: result[0].user_mail
+                    }
+                    console.log(Math.floor(Date.now()/1000))
+                    const token = jwt.sign({playload, exp: Math.floor(Date.now() / 1000) + (60 * 480) }, 'my_secret_key')
+                    // resolve("登入成功");
+                    resolve(Object.assign( { code: 200 }, { message: "登入成功" }, { token } ))
+                  } else {
+                    resolve("您輸入的密碼有誤");
+                  }
+                });
+            }
+            connection.release();
+          }
+        );
+
+      }
+    });
+  });
+};
 
 // User POST 新增
 const createUser = insertValues => {
@@ -119,5 +169,6 @@ export default {
   createUser,
   selectUser,
   modifyUser,
-  deleteUser
+  deleteUser,
+  selectUserLogin
 }

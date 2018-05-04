@@ -17,7 +17,7 @@ app.use(cors())
 app.use(morgan('dev'))
 
 app.get('/', (req, res)=> {
-  res.send(`!server started on port http://127.0.0.1:${config.port}(${config.env})`)
+  res.status(202).send(`server started on port http://127.0.0.1:${config.port}(${config.env})`)
 })
 
 app.use('/api', index)

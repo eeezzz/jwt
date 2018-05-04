@@ -1,6 +1,19 @@
 // article.controller.js
 import articleModule from '../modules/article.module'
 
+
+// aritcle GET JWT取得個人文章
+const articlePersonalGet = (req, res) => {
+  console.log(req.token)
+  articleModule.selectPersonalArticle(req.token)
+    .then((result) => {
+      res.send(result)
+    })
+    .catch((err)=> { 
+      return res.status(401).send(err)
+    })
+}
+
 // article POST 新增
 const articlePost = (req, res) => {
   // 取得新增參數
@@ -54,7 +67,8 @@ export default {
   articlePost,
   articleGet,
   articlePut,
-  articleDELETE
-}
+  articleDELETE,
+  articlePersonalGet
+};
 
 // export default articleCtrl

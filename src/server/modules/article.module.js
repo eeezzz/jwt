@@ -1,6 +1,7 @@
 // article.module.js
 import mysql from "mysql";
 import config from "../../config/config";
+import jwt from "jsonwebtoken";
 
 const connectionPool = mysql.createPool({
   connectionLimit: 10,
@@ -9,6 +10,46 @@ const connectionPool = mysql.createPool({
   password: config.mysqlPass,
   database: config.mysqlDatabase
 });
+
+// aritcle GET JWT取得個人文章
+const selectPersonalArticle = token => {
+  console.log("article.module: ", token);
+  return new Promise((resolve, reject) => {
+    jwt.verify(token, "my_secret_key", (err, decoded) => {
+      if (err) {
+        console.log("JWTError");
+        reject(Object.assign({ code: "401" }, err));
+      } else {
+        // JWT 驗證成功 -> 取得 user_id
+        const userId = decoded.playload.user_id
+        console.log(userId)
+        // resolve(decoded);
+        // JWT 驗證成功 -> 撈取資料庫該用戶的所有文章
+        connectionPool.getConnection((connectionError, connection) => {
+          if (connectionError) {
+            reject(connectionError);
+          } else {
+            // resolve(decoded);
+            connection.query(
+              `SELECT * FROM Article WHERE user_id = ${userId}`,
+              // "SELECT * FROM Article WHERE user_id = ?",
+              // [userId],
+              (error, result) => {
+                if (error) {
+                  console.error("SQL error: ", error);
+                  reject(error);
+                } else  {
+                  resolve(result);
+                }
+                connection.release();
+              }
+            );
+          }
+        });
+      }
+    });
+  });
+};
 
 // article POST 新增
 const createArticle = insertValues => {
@@ -58,7 +99,7 @@ const selectArticle = () => {
 
 //article PUT 修改
 const modifyArticle = (insertValues, userId) => {
-  console.log('value',insertValues)
+  console.log("value", insertValues);
   return new Promise((resolve, reject) => {
     connectionPool.getConnection((connectionError, connection) => {
       if (connectionError) {
@@ -74,7 +115,7 @@ const modifyArticle = (insertValues, userId) => {
             } else if (result.affectedRows === 0) {
               resolve("請確認修改ID！");
             } else if (result.message.match("Changed: 1")) {
-              console.log(result.message)
+              console.log(result.message);
               resolve("資料修改成功");
             } else {
               console.log(result.message);
@@ -89,8 +130,7 @@ const modifyArticle = (insertValues, userId) => {
 };
 
 //article DELETE 刪除
-const deleteArticle = (userId) => {
-
+const deleteArticle = userId => {
   return new Promise((resolve, reject) => {
     connectionPool.getConnection((connectionError, connection) => {
       if (connectionError) {
@@ -120,5 +160,6 @@ export default {
   createArticle,
   selectArticle,
   modifyArticle,
-  deleteArticle
+  deleteArticle,
+  selectPersonalArticle
 };

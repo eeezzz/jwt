@@ -15,7 +15,7 @@ router.use('/user', user)
 
 /* GET localhost:[port]/api page. */
 router.get("/", (req, res) => {
-  res.send(`此路徑是: localhost:${config.port}/api`)
+  res.status(202).send(`此路徑是: localhost:${config.port}/api`)
 });
 
 // mysql 連線測試
